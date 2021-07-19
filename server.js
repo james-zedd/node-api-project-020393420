@@ -17,15 +17,16 @@ const hpp = require('hpp');
 const cors = require('cors');
 
 // Load ENV vars
+// ====================================
 dotenv.config({ path: './config/config.env' });
 
 // Connect to DB
+// ====================================
 connectDB();
 
 // Middleware -- Body Parser
 // ====================================
 app.use(express.json());
-
 
 // Middleware -- morgan
 // ====================================
@@ -54,8 +55,7 @@ app.use(xss());
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 100
-})
-
+});
 app.use(limiter);
 
 // Security -- handle HTTP param pollution
@@ -78,7 +78,7 @@ const auth = require('./routes/auth');
 const users = require('./routes/users');
 const reviews = require('./routes/reviews');
 
-// User Routes
+// Use Routes
 // ====================================
 app.use('/api/v1/bootcamps', bootcamps);
 app.use('/api/v1/courses', courses);
@@ -90,9 +90,12 @@ app.use('/api/v1/reviews', reviews);
 // ====================================
 app.use(errorHandler);
 
+// Start server
+// ====================================
 const server = app.listen(PORT, console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`.yellow.bold));
 
 // Handle unhandled promise rejection
+// ====================================
 process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`.red.bold);
   server.close(() => process.exit(1));
