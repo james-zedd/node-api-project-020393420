@@ -8,17 +8,24 @@ const crypto = require('crypto');
 // @ route    POST /api/v1/auth/register
 // @ access   public
 exports.register = asyncHandler(async (req, res, next) => {
-  const { name, email, password, role } = req.body;
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(400).json({
+      success: false,
+      data: 'You cannot create a new user in this environment.'
+    });
+  } else {
+    const { name, email, password, role } = req.body;
 
-  // create user
-  const user = await User.create({
-    name: name,
-    email: email,
-    password: password,
-    role: role,
-  });
+    // create user
+    const user = await User.create({
+      name: name,
+      email: email,
+      password: password,
+      role: role,
+    });
 
-  sendTokenResponse(user, 200, res);
+    sendTokenResponse(user, 200, res);
+  }
 });
 
 // @ desc     login user
@@ -117,46 +124,53 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
 // @ route    GET /api/v1/auth/forgotpassword
 // @ access   public
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
-  const user = await User.findOne({ email: req.body.email });
-
-  if (!user) {
-    return next(new ErrorResponse('there is no user with that email', 404));
-  }
-
-  // Get reset token
-  const resetToken = user.getResetPasswordToken();
-
-  // console.log(resetToken);
-
-  await user.save({ validateBeforeSave: false });
-
-  // create reset url
-  const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/resetpassword/${resetToken}`;
-
-  const message = `You are receiving this email because you (or someone else) has requested a reset of a password. Please make a PUT request request to: \n\n ${resetUrl}`;
-
-  try {
-    await sendEmail({
-      email:user.email,
-      subject: 'Password reset token',
-      message: message,
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(400).json({
+      success: false,
+      data: 'You cannot access this route in this environment.',
     });
+  } else {
+    const user = await User.findOne({ email: req.body.email });
 
-    res.status(200).json({ success: true, data: 'Email sent' });
-  } catch (err) {
-    console.log(err);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
+    if (!user) {
+      return next(new ErrorResponse('there is no user with that email', 404));
+    }
+
+    // Get reset token
+    const resetToken = user.getResetPasswordToken();
+
+    // console.log(resetToken);
 
     await user.save({ validateBeforeSave: false });
 
-    return next(new ErrorResponse('Email could not be sent', 500));
-  }
+    // create reset url
+    const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/resetpassword/${resetToken}`;
 
-  res.status(200).json({
-    success: true,
-    data: user,
-  });
+    const message = `You are receiving this email because you (or someone else) has requested a reset of a password. Please make a PUT request request to: \n\n ${resetUrl}`;
+
+    try {
+      await sendEmail({
+        email:user.email,
+        subject: 'Password reset token',
+        message: message,
+      });
+
+      res.status(200).json({ success: true, data: 'Email sent' });
+    } catch (err) {
+      console.log(err);
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+
+      await user.save({ validateBeforeSave: false });
+
+      return next(new ErrorResponse('Email could not be sent', 500));
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  }
 });
 
 // @ desc     reset password

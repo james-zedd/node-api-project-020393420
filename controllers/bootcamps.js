@@ -9,8 +9,6 @@ const path = require('path');
 // @ route    GET /api/v1/bootcamps
 // @ access   public
 exports.getBootcamps = asyncHandler(async (req, res, next) => {
-    
-
     res.status(200).json(res.advancedResults);
 });
 
